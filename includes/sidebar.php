@@ -89,6 +89,18 @@ $isMember = hasRole(ROLE_MEMBER);
                     <span>Definições</span>
                 </a>
             </li>
+            <li class="<?= $currentPage === 'distribuicoes' ? 'active' : '' ?>">
+                <a href="<?= BASE_URL ?>/pages/distribuicoes.php">
+                    <span class="nav-icon"><i class="bi bi-gift"></i></span>
+                    <span>Distribuições</span>
+                </a>
+            </li>
+            <li class="<?= $currentPage === 'utilizadores' ? 'active' : '' ?>">
+                <a href="<?= BASE_URL ?>/pages/utilizadores.php">
+                    <span class="nav-icon"><i class="bi bi-people-fill"></i></span>
+                    <span>Utilizadores</span>
+                </a>
+            </li>
         </ul>
         <?php endif; ?>
 

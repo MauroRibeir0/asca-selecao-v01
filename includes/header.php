@@ -77,15 +77,79 @@ if (empty($_initials)) $_initials = 'U';
 
         <!-- Notifications -->
         <div class="dropdown">
-            <button class="btn btn-link text-white position-relative" data-bs-toggle="dropdown" aria-label="Notificações">
+            <button class="btn btn-link text-white position-relative" data-bs-toggle="dropdown" aria-label="Notificações" id="notifToggleBtn">
                 <i class="bi bi-bell fs-5"></i>
                 <span class="notification-badge" id="notifBadge" style="display:none;"></span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end" id="notifDropdown" style="min-width:240px;">
-                <li><h6 class="dropdown-header fw-700 px-3 py-2">Notificações</h6></li>
-                <li><span class="dropdown-item text-muted small">Sem notificações</span></li>
+            <ul class="dropdown-menu dropdown-menu-end" id="notifDropdown" style="min-width:280px;">
+                <li><h6 class="dropdown-header fw-bold px-3 py-2 border-bottom">Notificações</h6></li>
+                <li><span class="dropdown-item text-muted small py-2"><i class="bi bi-check-circle me-1"></i>A verificar...</span></li>
             </ul>
         </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var baseUrl = (document.querySelector('meta[name="base-url"]') || {}).content || '';
+
+    function loadNotifications() {
+        fetch(baseUrl + '/api/notificacoes_api.php?action=list&_=' + Date.now())
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.success) return;
+                var badge  = document.getElementById('notifBadge');
+                var dropdown = document.getElementById('notifDropdown');
+
+                if (data.total_count > 0) {
+                    badge.textContent = data.total_count > 9 ? '9+' : data.total_count;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                var urgencyColors = {
+                    danger:  'text-danger',
+                    warning: 'text-warning',
+                    info:    'text-info'
+                };
+                var urgencyBg = {
+                    danger:  'bg-danger-subtle',
+                    warning: 'bg-warning-subtle',
+                    info:    'bg-info-subtle'
+                };
+
+                var html = '<li><h6 class="dropdown-header fw-bold px-3 py-2 border-bottom">Notificações</h6></li>';
+
+                if (data.notifications.length === 0) {
+                    html += '<li><span class="dropdown-item text-muted small py-2"><i class="bi bi-check-circle me-1 text-success"></i>Sem notificações pendentes</span></li>';
+                } else {
+                    data.notifications.forEach(function (n) {
+                        var colorClass = urgencyColors[n.urgency] || 'text-secondary';
+                        var bgClass    = urgencyBg[n.urgency] || '';
+                        html += '<li>' +
+                            '<span class="dropdown-item d-flex align-items-center gap-2 py-2 border-bottom ' + bgClass + '">' +
+                                '<i class="bi ' + n.icon + ' fs-5 ' + colorClass + '"></i>' +
+                                '<div class="flex-grow-1">' +
+                                    '<div class="small fw-semibold">' + n.title + '</div>' +
+                                    '<div class="text-muted" style="font-size:.72rem;">' + n.message + '</div>' +
+                                '</div>' +
+                                '<span class="badge ' + (n.urgency === 'danger' ? 'bg-danger' : (n.urgency === 'warning' ? 'bg-warning text-dark' : 'bg-info text-dark')) + ' ms-1">' + n.count + '</span>' +
+                            '</span>' +
+                        '</li>';
+                    });
+                }
+
+                dropdown.innerHTML = html;
+            })
+            .catch(function () {
+                // Silently fail — notifications are non-critical
+            });
+    }
+
+    loadNotifications();
+    // Refresh every 90 seconds
+    setInterval(loadNotifications, 90000);
+});
+</script>
 
         <!-- User Menu -->
         <div class="dropdown">

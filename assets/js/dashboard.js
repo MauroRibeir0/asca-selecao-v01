@@ -33,15 +33,52 @@ function loadDashboard() {
         .catch(() => APP.showToast('Erro de conexão', 'danger'));
 }
 
+/**
+ * Animate a numeric value counting up from 0 to target using requestAnimationFrame.
+ * @param {HTMLElement} el       - The DOM element to update
+ * @param {number}      target   - Final numeric value
+ * @param {function}    format   - Formatter: (value) => string
+ * @param {number}      duration - Animation duration in ms (default 800)
+ */
+function animateCounter(el, target, format, duration) {
+    duration = duration || 800;
+    var start     = performance.now();
+    var startVal  = 0;
+
+    function step(now) {
+        var elapsed  = Math.min(now - start, duration);
+        var progress = elapsed / duration;
+        // Ease-out cubic
+        progress = 1 - Math.pow(1 - progress, 3);
+        var current = startVal + (target - startVal) * progress;
+        el.textContent = format(current);
+        if (elapsed < duration) {
+            requestAnimationFrame(step);
+        } else {
+            el.textContent = format(target);
+        }
+    }
+    requestAnimationFrame(step);
+}
+
 function updateKPIs(kpis) {
-    document.getElementById('kpiMembers').textContent = kpis.total_members;
-    document.getElementById('kpiFund').textContent = APP.formatMoney(kpis.total_fund);
-    document.getElementById('kpiLoaned').textContent = APP.formatMoney(kpis.total_loaned);
-    document.getElementById('kpiInterest').textContent = APP.formatMoney(kpis.total_interest);
-    document.getElementById('kpiOverdue').textContent = kpis.overdue_loans_count;
-    document.getElementById('kpiAvailable').textContent = APP.formatMoney(kpis.capital_available);
-    document.getElementById('kpiLateFees').textContent = APP.formatMoney(kpis.total_late_fees);
-    document.getElementById('kpiRecovery').textContent = kpis.recovery_rate + '%';
+    var members  = document.getElementById('kpiMembers');
+    var fund     = document.getElementById('kpiFund');
+    var loaned   = document.getElementById('kpiLoaned');
+    var interest = document.getElementById('kpiInterest');
+    var overdue  = document.getElementById('kpiOverdue');
+    var avail    = document.getElementById('kpiAvailable');
+    var lateFees = document.getElementById('kpiLateFees');
+    var recovery = document.getElementById('kpiRecovery');
+
+    if (members)  animateCounter(members,  parseFloat(kpis.total_members),        function(v) { return Math.round(v).toString(); });
+    if (fund)     animateCounter(fund,     parseFloat(kpis.total_fund),            function(v) { return APP.formatMoney(v); });
+    if (loaned)   animateCounter(loaned,   parseFloat(kpis.total_loaned),          function(v) { return APP.formatMoney(v); });
+    if (interest) animateCounter(interest, parseFloat(kpis.total_interest),        function(v) { return APP.formatMoney(v); });
+    if (overdue)  animateCounter(overdue,  parseFloat(kpis.overdue_loans_count),   function(v) { return Math.round(v).toString(); });
+    if (avail)    animateCounter(avail,    parseFloat(kpis.capital_available),     function(v) { return APP.formatMoney(v); });
+    if (lateFees) animateCounter(lateFees, parseFloat(kpis.total_late_fees),       function(v) { return APP.formatMoney(v); });
+    if (recovery) animateCounter(recovery, parseFloat(kpis.recovery_rate),         function(v) { return Math.round(v) + '%'; });
 }
 
 function updateCharts(charts, kpis) {
@@ -77,13 +114,13 @@ function updateCharts(charts, kpis) {
                     {
                         label: 'Contribuições',
                         data: contribData,
-                        backgroundColor: 'rgba(13, 148, 136, 0.7)',
+                        backgroundColor: 'rgba(5, 150, 105, 0.75)',
                         borderRadius: 6,
                     },
                     {
                         label: 'Empréstimos',
                         data: loanData,
-                        backgroundColor: 'rgba(14, 165, 233, 0.7)',
+                        backgroundColor: 'rgba(2, 132, 199, 0.75)',
                         borderRadius: 6,
                     }
                 ]
@@ -120,10 +157,10 @@ function updateCharts(charts, kpis) {
                         kpis.total_late_fees
                     ],
                     backgroundColor: [
-                        'rgba(13, 148, 136, 0.8)',
-                        'rgba(14, 165, 233, 0.8)',
-                        'rgba(245, 158, 11, 0.8)',
-                        'rgba(220, 38, 38, 0.8)'
+                        'rgba(5,150,105,.8)',
+                        'rgba(2,132,199,.8)',
+                        'rgba(217,119,6,.8)',
+                        'rgba(220,38,38,.8)'
                     ],
                     borderWidth: 0,
                     hoverOffset: 8

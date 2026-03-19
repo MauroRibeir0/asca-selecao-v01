@@ -117,6 +117,74 @@ switch ($action) {
             jsonResponse(['success' => false, 'message' => "O valor mínimo para empréstimo é de " . formatMoney($minAmount) . "."], 422);
         }
 
+        // ── LOAN CAPACITY CHECK ───────────────────────────────
+        $adminOverride = !empty($_POST['admin_override']) && isAdmin();
+
+        // Member savings = sum of contributions for this cycle
+        $memberSavingsRow = $db->fetch(
+            "SELECT COALESCE(SUM(amount), 0) as total FROM contributions WHERE member_id = ? AND cycle_id = ?",
+            [$memberId, $cycleId]
+        );
+        $memberSavings = (float)$memberSavingsRow['total'];
+
+        // Group total savings
+        $groupSavingsRow = $db->fetch(
+            "SELECT COALESCE(SUM(c.amount), 0) as total FROM contributions c
+             JOIN member_cycles mc ON mc.member_id = c.member_id AND mc.cycle_id = c.cycle_id
+             WHERE c.cycle_id = ?",
+            [$cycleId]
+        );
+        $groupSavings = (float)$groupSavingsRow['total'];
+
+        // Total interest paid in the cycle
+        $totalInterestRow = $db->fetch(
+            "SELECT COALESCE(SUM(interest_amount), 0) as total FROM loan_interest WHERE cycle_id = ? AND status = 'paid'",
+            [$cycleId]
+        );
+        $totalInterestPaid = (float)$totalInterestRow['total'];
+
+        // Proportional interest share
+        $interestShare = ($groupSavings > 0) ? ($memberSavings / $groupSavings) * $totalInterestPaid : 0.0;
+
+        // Tolerance margin from cycle settings
+        $tolerance = (float)($cycle['loan_tolerance_margin'] ?? 0);
+
+        // Active debt = only active + overdue loans (not paid/rolled originals)
+        $activeDebtRow = $db->fetch(
+            "SELECT COALESCE(SUM(amount), 0) as total FROM loans
+             WHERE member_id = ? AND cycle_id = ? AND status IN ('active', 'overdue')",
+            [$memberId, $cycleId]
+        );
+        $memberActiveDebt = (float)$activeDebtRow['total'];
+
+        // Capacity = savings + interest_share + tolerance - active_debt
+        $capacity = $memberSavings + $interestShare + $tolerance - $memberActiveDebt;
+
+        if ($amount > $capacity + 0.01 && !$adminOverride) {
+            $memberRow = $db->fetch("SELECT full_name FROM members WHERE id = ?", [$memberId]);
+            jsonResponse([
+                'success'   => false,
+                'message'   => 'Valor solicitado excede a capacidade de endividamento do membro.',
+                'capacity_breakdown' => [
+                    'member_savings'     => round($memberSavings, 2),
+                    'interest_share'     => round($interestShare, 2),
+                    'tolerance'          => round($tolerance, 2),
+                    'active_debt'        => round($memberActiveDebt, 2),
+                    'capacity'           => round($capacity, 2),
+                    'requested'          => round($amount, 2),
+                    'shortfall'          => round($amount - $capacity, 2),
+                ]
+            ], 422);
+        }
+
+        if ($adminOverride && $amount > $capacity + 0.01) {
+            $memberRow = $db->fetch("SELECT full_name FROM members WHERE id = ?", [$memberId]);
+            logActivity('loan_capacity_override', 'loan', null,
+                "Override de capacidade: {$memberRow['full_name']} solicitou " . formatMoney($amount) .
+                " (capacidade: " . formatMoney($capacity) . ")");
+        }
+        // ─────────────────────────────────────────────────────
+
         $dueDate = calculateLoanDueDate($disbDate, $cycle['loan_repayment_days']);
 
         $db->query(
@@ -462,6 +530,57 @@ switch ($action) {
             [$loanId]
         );
         jsonResponse(['success' => true, 'data' => $interests]);
+        break;
+
+    // ── LOAN CAPACITY PREVIEW ──────────────────────────────
+    case 'loan_capacity_preview':
+        $previewMemberId = (int)($_GET['member_id'] ?? 0);
+        if (!$previewMemberId) {
+            jsonResponse(['success' => false, 'message' => 'member_id é obrigatório.'], 422);
+        }
+
+        $memberSavingsRow = $db->fetch(
+            "SELECT COALESCE(SUM(amount), 0) as total FROM contributions WHERE member_id = ? AND cycle_id = ?",
+            [$previewMemberId, $cycleId]
+        );
+        $memberSavings = (float)$memberSavingsRow['total'];
+
+        $groupSavingsRow = $db->fetch(
+            "SELECT COALESCE(SUM(c.amount), 0) as total FROM contributions c
+             JOIN member_cycles mc ON mc.member_id = c.member_id AND mc.cycle_id = c.cycle_id
+             WHERE c.cycle_id = ?",
+            [$cycleId]
+        );
+        $groupSavings = (float)$groupSavingsRow['total'];
+
+        $totalInterestRow = $db->fetch(
+            "SELECT COALESCE(SUM(interest_amount), 0) as total FROM loan_interest WHERE cycle_id = ? AND status = 'paid'",
+            [$cycleId]
+        );
+        $totalInterestPaid = (float)$totalInterestRow['total'];
+
+        $interestShare = ($groupSavings > 0) ? ($memberSavings / $groupSavings) * $totalInterestPaid : 0.0;
+        $tolerance     = (float)($cycle['loan_tolerance_margin'] ?? 0);
+
+        $activeDebtRow = $db->fetch(
+            "SELECT COALESCE(SUM(amount), 0) as total FROM loans
+             WHERE member_id = ? AND cycle_id = ? AND status IN ('active', 'overdue')",
+            [$previewMemberId, $cycleId]
+        );
+        $memberActiveDebt = (float)$activeDebtRow['total'];
+        $capacity = $memberSavings + $interestShare + $tolerance - $memberActiveDebt;
+
+        jsonResponse([
+            'success'  => true,
+            'capacity' => round($capacity, 2),
+            'breakdown' => [
+                'member_savings' => round($memberSavings, 2),
+                'interest_share' => round($interestShare, 2),
+                'tolerance'      => round($tolerance, 2),
+                'active_debt'    => round($memberActiveDebt, 2),
+                'capacity'       => round($capacity, 2),
+            ]
+        ]);
         break;
 
     default:
