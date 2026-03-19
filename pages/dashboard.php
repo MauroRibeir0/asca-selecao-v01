@@ -80,37 +80,29 @@ require_once __DIR__ . '/../includes/sidebar.php';
 <!-- KPI Cards -->
 <div class="row g-3 mb-4">
     <div class="col-md-6 col-xl-3">
-        <div class="kpi-card kpi-primary bg-white">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="kpi-icon"><i class="bi bi-people"></i></div>
-            </div>
+        <div class="kpi-card kpi-primary fade-in stagger-1">
+            <div class="kpi-icon"><i class="bi bi-people"></i></div>
             <div class="kpi-value" id="kpiMembers">—</div>
             <div class="kpi-label">Membros Activos</div>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="kpi-card kpi-success bg-white">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="kpi-icon"><i class="bi bi-safe"></i></div>
-            </div>
+        <div class="kpi-card kpi-success fade-in stagger-2">
+            <div class="kpi-icon"><i class="bi bi-safe"></i></div>
             <div class="kpi-value" id="kpiFund">—</div>
             <div class="kpi-label">Fundo Total Acumulado</div>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="kpi-card kpi-info bg-white">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="kpi-icon"><i class="bi bi-arrow-up-right-circle"></i></div>
-            </div>
+        <div class="kpi-card kpi-info fade-in stagger-3">
+            <div class="kpi-icon"><i class="bi bi-arrow-up-right-circle"></i></div>
             <div class="kpi-value" id="kpiLoaned">—</div>
             <div class="kpi-label">Total Emprestado</div>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="kpi-card kpi-warning bg-white">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="kpi-icon"><i class="bi bi-percent"></i></div>
-            </div>
+        <div class="kpi-card kpi-warning fade-in stagger-4">
+            <div class="kpi-icon"><i class="bi bi-percent"></i></div>
             <div class="kpi-value" id="kpiInterest">—</div>
             <div class="kpi-label">Total de Juros Cobrados</div>
         </div>
@@ -120,37 +112,29 @@ require_once __DIR__ . '/../includes/sidebar.php';
 <!-- Second row KPIs -->
 <div class="row g-3 mb-4">
     <div class="col-md-6 col-xl-3">
-        <div class="kpi-card kpi-danger bg-white">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></div>
-            </div>
+        <div class="kpi-card kpi-danger fade-in stagger-5">
+            <div class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></div>
             <div class="kpi-value" id="kpiOverdue">—</div>
             <div class="kpi-label">Empréstimos em Atraso</div>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="kpi-card kpi-success bg-white">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
-            </div>
+        <div class="kpi-card kpi-success fade-in stagger-6">
+            <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
             <div class="kpi-value" id="kpiAvailable">—</div>
             <div class="kpi-label">Capital Disponível</div>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="kpi-card kpi-warning bg-white">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="kpi-icon"><i class="bi bi-receipt"></i></div>
-            </div>
+        <div class="kpi-card kpi-warning fade-in stagger-7">
+            <div class="kpi-icon"><i class="bi bi-receipt"></i></div>
             <div class="kpi-value" id="kpiLateFees">—</div>
             <div class="kpi-label">Total de Multas</div>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="kpi-card kpi-primary bg-white">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div>
-            </div>
+        <div class="kpi-card kpi-primary fade-in stagger-8">
+            <div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div>
             <div class="kpi-value" id="kpiRecovery">—</div>
             <div class="kpi-label">Taxa de Recuperação</div>
         </div>

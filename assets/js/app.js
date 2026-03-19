@@ -155,12 +155,13 @@ const APP = {
 
     // ─── Constants & Colors ──────────────
     COLORS: {
-        primary: '#1a73e8',
-        success: '#0d9488',
-        info: '#0ea5e9',
-        warning: '#f59e0b',
+        primary: '#2563eb',
+        success: '#059669',
+        info: '#0284c7',
+        warning: '#d97706',
         danger: '#dc2626',
-        secondary: '#6c757d'
+        secondary: '#64748b',
+        accent: '#7c3aed'
     },
 
     // ─── Format money client-side ────────

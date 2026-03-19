@@ -11,6 +11,15 @@ $allCycles   = getAllCycles();
 
 // Determine current page
 $currentPage = basename($_SERVER['SCRIPT_FILENAME'], '.php');
+
+// Generate user initials for avatar
+$_initials = '';
+$_nameParts = explode(' ', trim($currentUser['full_name'] ?? 'U'));
+foreach ($_nameParts as $_part) {
+    $_initials .= strtoupper(substr($_part, 0, 1));
+    if (strlen($_initials) >= 2) break;
+}
+if (empty($_initials)) $_initials = 'U';
 ?>
 <!DOCTYPE html>
 <html lang="pt">
@@ -20,7 +29,7 @@ $currentPage = basename($_SERVER['SCRIPT_FILENAME'], '.php');
     <meta name="description" content="ASCA Selecção - Sistema de Gestão de Poupança e Empréstimo">
     <title><?= APP_NAME ?> — <?= $pageTitle ?? 'Dashboard' ?></title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#2563eb">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
     <meta name="base-url" content="<?= BASE_URL ?>">
@@ -32,30 +41,31 @@ $currentPage = basename($_SERVER['SCRIPT_FILENAME'], '.php');
     <!-- DataTables -->
     <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="<?= BASE_URL ?>/assets/css/style.css" rel="stylesheet">
 </head>
 <body>
 
 <!-- Top Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-navbar fixed-top px-3 shadow-sm">
-    <div class="d-flex align-items-center">
-        <button class="btn btn-link text-white me-2 d-lg-none" id="sidebarToggle">
+<nav class="navbar navbar-expand-lg navbar-dark bg-navbar fixed-top px-3">
+    <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-link text-white d-lg-none p-1" id="sidebarToggle" aria-label="Menu">
             <i class="bi bi-list fs-4"></i>
         </button>
-        <a class="navbar-brand d-flex align-items-center" href="<?= BASE_URL ?>/pages/dashboard.php">
-            <i class="bi bi-bank2 me-2 fs-4"></i>
+        <a class="navbar-brand d-flex align-items-center gap-2 text-white" href="<?= BASE_URL ?>/pages/dashboard.php">
+            <div class="brand-icon">
+                <i class="bi bi-bank2"></i>
+            </div>
             <span class="fw-bold"><?= APP_NAME ?></span>
         </a>
     </div>
 
-    <div class="d-flex align-items-center ms-auto">
-        <!-- Cycle Selector (compact) -->
+    <div class="d-flex align-items-center ms-auto gap-2">
+        <!-- Cycle Selector (admin/staff only) -->
         <?php if (isAdminOrUser() && count($allCycles) > 0): ?>
-        <div class="me-3">
-            <select class="form-select form-select-sm bg-dark text-white border-secondary" 
-                    id="cycleSelectorNav" style="min-width: 160px;">
+        <div class="d-none d-sm-block">
+            <select class="form-select form-select-sm" id="cycleSelectorNav" style="min-width: 155px;">
                 <?php foreach ($allCycles as $c): ?>
                 <option value="<?= $c['id'] ?>" <?= ($activeCycle && $activeCycle['id'] == $c['id']) ? 'selected' : '' ?>>
                     <?= sanitize($c['name']) ?>
@@ -66,32 +76,36 @@ $currentPage = basename($_SERVER['SCRIPT_FILENAME'], '.php');
         <?php endif; ?>
 
         <!-- Notifications -->
-        <div class="dropdown me-3">
-            <button class="btn btn-link text-white position-relative" data-bs-toggle="dropdown">
+        <div class="dropdown">
+            <button class="btn btn-link text-white position-relative" data-bs-toggle="dropdown" aria-label="Notificações">
                 <i class="bi bi-bell fs-5"></i>
                 <span class="notification-badge" id="notifBadge" style="display:none;"></span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow" id="notifDropdown">
-                <li><h6 class="dropdown-header">Notificações</h6></li>
+            <ul class="dropdown-menu dropdown-menu-end" id="notifDropdown" style="min-width:240px;">
+                <li><h6 class="dropdown-header fw-700 px-3 py-2">Notificações</h6></li>
                 <li><span class="dropdown-item text-muted small">Sem notificações</span></li>
             </ul>
         </div>
 
         <!-- User Menu -->
         <div class="dropdown">
-            <button class="btn btn-link text-white d-flex align-items-center text-decoration-none" data-bs-toggle="dropdown">
-                <div class="avatar-sm me-2">
-                    <i class="bi bi-person-circle fs-4"></i>
-                </div>
+            <button class="btn btn-link text-white d-flex align-items-center gap-2 text-decoration-none p-1" data-bs-toggle="dropdown">
+                <div class="user-avatar"><?= htmlspecialchars($_initials) ?></div>
                 <div class="d-none d-md-block text-start">
-                    <div class="fw-semibold small"><?= sanitize($currentUser['full_name'] ?? 'Utilizador') ?></div>
-                    <div class="text-white-50" style="font-size: 0.7rem;"><?= ucfirst($currentUser['role'] ?? '') ?></div>
+                    <div class="fw-semibold" style="font-size:.8rem; line-height:1.2;"><?= sanitize($currentUser['full_name'] ?? 'Utilizador') ?></div>
+                    <div class="text-white-50" style="font-size:.68rem;"><?= ucfirst($currentUser['role'] ?? '') ?></div>
                 </div>
-                <i class="bi bi-chevron-down ms-1 small"></i>
+                <i class="bi bi-chevron-down small opacity-75"></i>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow">
-                <li><a class="dropdown-item" href="<?= BASE_URL ?>/pages/meu_perfil.php"><i class="bi bi-person me-2"></i>Meu Perfil</a></li>
-                <li><hr class="dropdown-divider"></li>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <div class="px-3 py-2 border-bottom mb-1">
+                        <div class="fw-700 small"><?= sanitize($currentUser['full_name'] ?? '') ?></div>
+                        <div class="text-muted" style="font-size:.75rem;"><?= sanitize($currentUser['username'] ?? '') ?></div>
+                    </div>
+                </li>
+                <li><a class="dropdown-item" href="<?= BASE_URL ?>/pages/meu_perfil.php"><i class="bi bi-person me-2 text-primary"></i>Meu Perfil</a></li>
+                <li><hr class="dropdown-divider my-1"></li>
                 <li><a class="dropdown-item text-danger" href="<?= BASE_URL ?>/logout.php"><i class="bi bi-box-arrow-right me-2"></i>Sair</a></li>
             </ul>
         </div>
