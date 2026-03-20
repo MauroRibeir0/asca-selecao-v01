@@ -200,6 +200,29 @@ usort($upcomingDue, function ($a, $b) {
 });
 $upcomingDue = array_slice($upcomingDue, 0, 15);
 
+// ── Detail lists for alert modals ────────────────────────────────────────────
+
+// Joias pending (for modal)
+$pendingJoiasList = $db->fetchAll(
+    "SELECT m.id, m.full_name, m.phone, j.amount
+     FROM joias j JOIN members m ON j.member_id = m.id
+     WHERE j.cycle_id = ? AND j.status = 'pending'
+     ORDER BY m.full_name",
+    [$cycleId]
+);
+
+// Pending interest per member (for modal)
+$pendingInterestList = $db->fetchAll(
+    "SELECT m.id, m.full_name, m.phone,
+            SUM(li.interest_amount) as total_pending,
+            COUNT(*) as months_pending
+     FROM loan_interest li JOIN members m ON li.member_id = m.id
+     WHERE li.cycle_id = ? AND li.status = 'pending'
+     GROUP BY m.id, m.full_name, m.phone
+     ORDER BY total_pending DESC",
+    [$cycleId]
+);
+
 // ── Recent Activity ───────────────────────────────────────────────────────────
 $recentActivity = $db->fetchAll(
     "SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 10"
@@ -252,4 +275,6 @@ jsonResponse([
     'recent_activity'           => $recentActivity,
     'members_low_movement_list' => $membersLowMovement,
     'cycle_progress'            => $cycleProgress,
+    'pending_joias_list'        => $pendingJoiasList,
+    'pending_interest_list'     => $pendingInterestList,
 ]);

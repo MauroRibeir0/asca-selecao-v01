@@ -4,6 +4,8 @@
 
 let chartContribVsLoans = null;
 let chartDistribution   = null;
+let _dashData           = null;   // stored for modal population
+let _alertDismissTimer  = null;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point
@@ -26,8 +28,8 @@ function loadDashboard() {
                 APP.showToast(data.message || 'Erro ao carregar dashboard', 'danger');
                 return;
             }
+            _dashData = data;
             updateKPIs(data.kpis);
-            updateCycleStrip(data.cycle_progress, data.kpis);
             updateCharts(data.charts, data.kpis);
             updateUpcomingDue(data.upcoming_due);
             updateRecentActivity(data.recent_activity);
@@ -108,51 +110,6 @@ function updateKPIs(kpis) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Cycle progress strip + compliance + pending interest
-// ─────────────────────────────────────────────────────────────────────────────
-function updateCycleStrip(cycleProgress, kpis) {
-    const strip = document.getElementById('cycleStrip');
-    if (!strip) return;
-
-    // Monthly compliance
-    const compLabel = document.getElementById('complianceLabel');
-    const compBar   = document.getElementById('complianceBar');
-    const total     = kpis.total_members_active || kpis.total_members;
-    const paid      = kpis.paid_this_month || 0;
-    if (compLabel) {
-        compLabel.textContent = paid + '/' + total + ' membros';
-        const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
-        if (compBar) compBar.style.width = pct + '%';
-        if (pct < 50) {
-            compLabel.className = 'fw-bold text-danger';
-            if (compBar) compBar.className = 'progress-bar bg-danger';
-        } else if (pct < 80) {
-            compLabel.className = 'fw-bold text-warning';
-            if (compBar) compBar.className = 'progress-bar bg-warning';
-        }
-    }
-
-    // Pending interest
-    const piEl = document.getElementById('stripPendingInterest');
-    if (piEl) piEl.textContent = APP.formatMoney(kpis.pending_interest || 0);
-
-    // Cycle progress
-    if (cycleProgress) {
-        const datesLabel    = document.getElementById('cycleDatesLabel');
-        const progressBar   = document.getElementById('cycleProgressBar');
-        const elapsedLabel  = document.getElementById('cycleElapsedLabel');
-        const pctLabel      = document.getElementById('cyclePctLabel');
-
-        const fmt = d => new Date(d).toLocaleDateString('pt-MZ', { day: '2-digit', month: 'short', year: 'numeric' });
-        if (datesLabel)   datesLabel.textContent   = fmt(cycleProgress.start_date) + ' → ' + fmt(cycleProgress.end_date);
-        if (progressBar)  progressBar.style.width  = cycleProgress.pct + '%';
-        if (elapsedLabel) elapsedLabel.textContent  = cycleProgress.elapsed_days + ' de ' + cycleProgress.total_days + ' dias';
-        if (pctLabel)     pctLabel.textContent      = cycleProgress.pct + '%';
-    }
-
-    strip.style.display = '';
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Charts
@@ -401,7 +358,7 @@ function updateRecentActivity(activities) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Alerts (persistent — user dismisses manually)
+// Alerts — auto-dismiss after 18 s; buttons open detail modals
 // ─────────────────────────────────────────────────────────────────────────────
 function updateAlerts(kpis, lowMovementMembers) {
     const container = document.getElementById('alertsContainer');
@@ -415,10 +372,13 @@ function updateAlerts(kpis, lowMovementMembers) {
                 <i class="bi bi-exclamation-circle fs-5 flex-shrink-0"></i>
                 <div>
                     <strong>${kpis.overdue_loans_count}</strong> empréstimo(s) em atraso
-                    <span class="text-danger fw-semibold ms-1">— ${APP.formatMoney(kpis.overdue_loans_total)}</span>
+                    <span class="fw-semibold ms-1">— ${APP.formatMoney(kpis.overdue_loans_total)}</span>
                 </div>
             </div>
-            <a href="emprestimos.php" class="btn btn-sm btn-danger" style="white-space:nowrap;">Ver Atrasos</a>
+            <button class="btn btn-sm btn-danger" style="white-space:nowrap;"
+                    onclick="showOverdueModal()">
+                <i class="bi bi-eye me-1"></i>Ver Detalhes
+            </button>
         </div>`;
     }
 
@@ -426,9 +386,12 @@ function updateAlerts(kpis, lowMovementMembers) {
         html += `<div class="alert-card alert-card-warning d-flex align-items-center justify-content-between gap-2">
             <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-gem fs-5 flex-shrink-0"></i>
-                <div><strong>${kpis.pending_joias}</strong> membro(s) com jóia pendente</div>
+                <div><strong>${kpis.pending_joias}</strong> membro(s) com jóia de adesão pendente</div>
             </div>
-            <a href="membros.php" class="btn btn-sm btn-warning text-dark" style="white-space:nowrap;">Ver Membros</a>
+            <button class="btn btn-sm btn-warning text-dark" style="white-space:nowrap;"
+                    onclick="showJoiasModal()">
+                <i class="bi bi-eye me-1"></i>Ver Detalhes
+            </button>
         </div>`;
     }
 
@@ -438,7 +401,10 @@ function updateAlerts(kpis, lowMovementMembers) {
                 <i class="bi bi-percent fs-5 flex-shrink-0"></i>
                 <div>Juros por cobrar: <strong>${APP.formatMoney(kpis.pending_interest)}</strong></div>
             </div>
-            <a href="emprestimos.php" class="btn btn-sm btn-outline-warning" style="white-space:nowrap;">Ver Juros</a>
+            <button class="btn btn-sm btn-outline-warning" style="white-space:nowrap;"
+                    onclick="showInterestModal()">
+                <i class="bi bi-eye me-1"></i>Ver Detalhes
+            </button>
         </div>`;
     }
 
@@ -450,13 +416,147 @@ function updateAlerts(kpis, lowMovementMembers) {
                 <i class="bi bi-person-exclamation fs-5 flex-shrink-0"></i>
                 <div>
                     <strong>${lowMovementMembers.length}</strong> membro(s) abaixo do limiar de movimentação
-                    <div class="text-muted small">${names}${extra}</div>
+                    <div class="text-muted small" style="font-size:.75rem;">${names}${extra}</div>
                 </div>
             </div>
+            <button class="btn btn-sm btn-outline-warning" style="white-space:nowrap;"
+                    onclick="showLowMovModal()">
+                <i class="bi bi-eye me-1"></i>Ver Detalhes
+            </button>
         </div>`;
     }
 
+    if (!html) { container.innerHTML = ''; return; }
+
     container.innerHTML = html;
+    container.style.opacity = '1';
+    container.style.transition = '';
+
+    // Auto-dismiss after 18 seconds
+    if (_alertDismissTimer) clearTimeout(_alertDismissTimer);
+    _alertDismissTimer = setTimeout(() => {
+        container.style.transition = 'opacity 1.2s ease';
+        container.style.opacity    = '0';
+        setTimeout(() => {
+            container.innerHTML        = '';
+            container.style.opacity    = '1';
+            container.style.transition = '';
+        }, 1300);
+    }, 18000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Alert detail modals
+// ─────────────────────────────────────────────────────────────────────────────
+function showOverdueModal() {
+    if (!_dashData) return;
+    const items  = (_dashData.upcoming_due || []).filter(i => i.urgency === 'overdue');
+    const tbody  = document.getElementById('modalOverdueBody');
+    const totEl  = document.getElementById('modalOverdueTotal');
+    const today  = new Date();
+
+    let total = 0;
+    tbody.innerHTML = items.length === 0
+        ? '<tr><td colspan="5" class="text-center text-muted py-3">Sem empréstimos em atraso.</td></tr>'
+        : items.map(l => {
+            total += parseFloat(l.amount);
+            const due      = new Date(l.due_date + 'T00:00:00');
+            const daysLate = Math.max(0, Math.round((today - due) / 86400000));
+            const daysClass = daysLate > 30 ? 'text-danger fw-bold' : daysLate > 7 ? 'text-warning' : '';
+            const phone = (l.phone || '').replace(/\D/g, '');
+            const waBtn = phone
+                ? `<button class="btn btn-sm p-1 lh-1" style="background:#25D366;color:#fff;border:none;border-radius:6px;"
+                           onclick="openWhatsAppModal('${l.phone}','${l.full_name.split(' ')[0].replace(/'/g,"\\'")}','${l.full_name.replace(/'/g,"\\'")}','empréstimo','${APP.formatMoney(parseFloat(l.amount))}','${new Date(l.due_date+'T00:00:00').toLocaleDateString('pt-MZ')}','overdue')">
+                       <i class="bi bi-whatsapp"></i></button>`
+                : '<span class="text-muted">—</span>';
+
+            return `<tr>
+                <td class="fw-semibold small">${l.full_name}</td>
+                <td class="text-end small">${APP.formatMoney(parseFloat(l.amount))}</td>
+                <td class="small">${new Date(l.due_date + 'T00:00:00').toLocaleDateString('pt-MZ')}</td>
+                <td class="text-center"><span class="${daysClass}">${daysLate}d</span></td>
+                <td class="text-center">${waBtn}</td>
+            </tr>`;
+        }).join('');
+
+    if (totEl) totEl.textContent = APP.formatMoney(total);
+    new bootstrap.Modal(document.getElementById('modalOverdueLoans')).show();
+}
+
+function showJoiasModal() {
+    if (!_dashData) return;
+    const items = _dashData.pending_joias_list || [];
+    const tbody = document.getElementById('modalJoiasBody');
+
+    tbody.innerHTML = items.length === 0
+        ? '<tr><td colspan="3" class="text-center text-muted py-3">Sem jóias pendentes.</td></tr>'
+        : items.map(m => {
+            const waBtn = m.phone
+                ? `<button class="btn btn-sm p-1 lh-1" style="background:#25D366;color:#fff;border:none;border-radius:6px;"
+                           onclick="openWhatsAppModal('${m.phone}','${m.full_name.split(' ')[0].replace(/'/g,"\\'")}','${m.full_name.replace(/'/g,"\\'")}','jóia de adesão','${APP.formatMoney(parseFloat(m.amount))}','—','upcoming')">
+                       <i class="bi bi-whatsapp"></i></button>`
+                : '<span class="text-muted">—</span>';
+            return `<tr>
+                <td class="fw-semibold small">${m.full_name}</td>
+                <td class="text-end small">${APP.formatMoney(parseFloat(m.amount || 0))}</td>
+                <td class="text-center">${waBtn}</td>
+            </tr>`;
+        }).join('');
+
+    new bootstrap.Modal(document.getElementById('modalPendingJoias')).show();
+}
+
+function showInterestModal() {
+    if (!_dashData) return;
+    const items = _dashData.pending_interest_list || [];
+    const tbody = document.getElementById('modalInterestBody');
+    const totEl = document.getElementById('modalInterestTotal');
+
+    let total = 0;
+    tbody.innerHTML = items.length === 0
+        ? '<tr><td colspan="4" class="text-center text-muted py-3">Sem juros pendentes.</td></tr>'
+        : items.map(m => {
+            total += parseFloat(m.total_pending);
+            const waBtn = m.phone
+                ? `<button class="btn btn-sm p-1 lh-1" style="background:#25D366;color:#fff;border:none;border-radius:6px;"
+                           onclick="openWhatsAppModal('${m.phone}','${m.full_name.split(' ')[0].replace(/'/g,"\\'")}','${m.full_name.replace(/'/g,"\\'")}','juros pendentes','${APP.formatMoney(parseFloat(m.total_pending))}','—','upcoming')">
+                       <i class="bi bi-whatsapp"></i></button>`
+                : '<span class="text-muted">—</span>';
+            return `<tr>
+                <td class="fw-semibold small">${m.full_name}</td>
+                <td class="text-end small text-warning fw-semibold">${APP.formatMoney(parseFloat(m.total_pending))}</td>
+                <td class="text-center small">${m.months_pending}</td>
+                <td class="text-center">${waBtn}</td>
+            </tr>`;
+        }).join('');
+
+    if (totEl) totEl.textContent = APP.formatMoney(total);
+    new bootstrap.Modal(document.getElementById('modalPendingInterest')).show();
+}
+
+function showLowMovModal() {
+    if (!_dashData) return;
+    const items     = _dashData.members_low_movement_list || [];
+    const tbody     = document.getElementById('modalLowMovBody');
+    const threshEl  = document.getElementById('modalLowMovThreshold');
+    const threshold = parseFloat((_dashData.kpis || {}).min_loan_movement || 50000);
+
+    if (threshEl) threshEl.textContent = APP.formatMoney(threshold);
+
+    tbody.innerHTML = items.length === 0
+        ? '<tr><td colspan="4" class="text-center text-muted py-3">Todos os membros atingiram o limiar.</td></tr>'
+        : items.map(m => {
+            const mov   = parseFloat(m.total_movement);
+            const falta = Math.max(0, threshold - mov);
+            return `<tr>
+                <td class="fw-semibold small">${m.full_name}</td>
+                <td class="text-end small">${APP.formatMoney(mov)}</td>
+                <td class="text-end small text-danger">${APP.formatMoney(falta)}</td>
+                <td class="text-center"><span class="badge bg-danger" style="font-size:.65rem;">Não</span></td>
+            </tr>`;
+        }).join('');
+
+    new bootstrap.Modal(document.getElementById('modalLowMovement')).show();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -31,53 +31,6 @@ require_once __DIR__ . '/../includes/sidebar.php';
 <!-- Alert Banner (persistent — dismiss manually) -->
 <div id="alertsContainer" class="mb-3"></div>
 
-<!-- Cycle Progress + Compliance Strip -->
-<div class="row g-3 mb-4" id="cycleStrip" style="display:none;">
-    <div class="col-md-5">
-        <div class="card border-0" style="background:#f8fafc;">
-            <div class="card-body py-2 px-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <small class="fw-semibold text-secondary">Progresso do Ciclo</small>
-                    <small id="cycleDatesLabel" class="text-muted">—</small>
-                </div>
-                <div class="progress" style="height:7px;border-radius:4px;">
-                    <div class="progress-bar bg-primary" id="cycleProgressBar"
-                         role="progressbar" style="width:0%;border-radius:4px;"></div>
-                </div>
-                <div class="d-flex justify-content-between mt-1">
-                    <small id="cycleElapsedLabel" class="text-muted" style="font-size:.7rem;"></small>
-                    <small id="cyclePctLabel" class="text-primary fw-semibold" style="font-size:.7rem;"></small>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card border-0" style="background:#f8fafc;">
-            <div class="card-body py-2 px-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <small class="fw-semibold text-secondary">Mensalidades (mês actual)</small>
-                    <small id="complianceLabel" class="fw-bold text-success">—</small>
-                </div>
-                <div class="progress" style="height:7px;border-radius:4px;">
-                    <div class="progress-bar bg-success" id="complianceBar"
-                         role="progressbar" style="width:0%;border-radius:4px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0" style="background:#fff8f0;">
-            <div class="card-body py-2 px-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="fw-semibold text-warning">Juros Pendentes</small>
-                    <small id="stripPendingInterest" class="fw-bold text-warning">—</small>
-                </div>
-                <small class="text-muted" style="font-size:.7rem;">Por cobrar a mutuários</small>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Quick Actions -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
@@ -289,6 +242,134 @@ require_once __DIR__ . '/../includes/sidebar.php';
                         style="background:#25D366;color:#fff;border:none;">
                     <i class="bi bi-whatsapp me-1"></i>Abrir WhatsApp
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════ ALERT DETAIL MODALS ══════ -->
+
+<!-- Modal: Empréstimos em Atraso -->
+<div class="modal fade" id="modalOverdueLoans" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0" style="background:#dc2626;color:#fff;">
+                <h6 class="modal-title fw-semibold"><i class="bi bi-exclamation-circle me-2"></i>Empréstimos em Atraso</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <table class="table table-hover table-sm mb-0" id="tblOverdue">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Membro</th>
+                            <th class="text-end">Valor</th>
+                            <th>Vencimento</th>
+                            <th class="text-center">Dias em Atraso</th>
+                            <th class="text-center">WhatsApp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalOverdueBody">
+                        <tr><td colspan="5" class="text-center text-muted py-3">A carregar...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <small class="text-muted me-auto">Total em atraso: <span id="modalOverdueTotal" class="fw-bold text-danger">—</span></small>
+                <a href="emprestimos.php" class="btn btn-sm btn-outline-secondary">Ir para Empréstimos</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Jóias Pendentes -->
+<div class="modal fade" id="modalPendingJoias" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0" style="background:#d97706;color:#fff;">
+                <h6 class="modal-title fw-semibold"><i class="bi bi-gem me-2"></i>Jóias Pendentes</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Membro</th>
+                            <th class="text-end">Valor Jóia</th>
+                            <th class="text-center">WhatsApp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalJoiasBody">
+                        <tr><td colspan="3" class="text-center text-muted py-3">A carregar...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <a href="membros.php" class="btn btn-sm btn-outline-secondary ms-auto">Ir para Membros</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Juros Pendentes -->
+<div class="modal fade" id="modalPendingInterest" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0" style="background:#d97706;color:#fff;">
+                <h6 class="modal-title fw-semibold"><i class="bi bi-percent me-2"></i>Juros Pendentes por Cobrar</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Membro</th>
+                            <th class="text-end">Total Pendente</th>
+                            <th class="text-center">Meses</th>
+                            <th class="text-center">WhatsApp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalInterestBody">
+                        <tr><td colspan="4" class="text-center text-muted py-3">A carregar...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <small class="text-muted me-auto">Total por cobrar: <span id="modalInterestTotal" class="fw-bold text-warning">—</span></small>
+                <a href="emprestimos.php" class="btn btn-sm btn-outline-secondary">Ir para Empréstimos</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Membros com Movimentação Baixa -->
+<div class="modal fade" id="modalLowMovement" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0" style="background:#d97706;color:#fff;">
+                <h6 class="modal-title fw-semibold"><i class="bi bi-person-exclamation me-2"></i>Membros Abaixo do Limiar de Movimentação</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="alert alert-warning border-0 rounded-0 mb-0 py-2 px-3" style="font-size:.82rem;">
+                    Estes membros não atingiram o limiar mínimo de movimentação em empréstimos e <strong>não serão elegíveis</strong> para receber juros fixos na distribuição do ciclo.
+                </div>
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Membro</th>
+                            <th class="text-end">Movimentação</th>
+                            <th class="text-end">Falta para Limiar</th>
+                            <th class="text-center">Elegível</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalLowMovBody">
+                        <tr><td colspan="4" class="text-center text-muted py-3">A carregar...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <small class="text-muted me-auto">Limiar mínimo: <span id="modalLowMovThreshold" class="fw-bold">—</span></small>
+                <a href="distribuicoes.php" class="btn btn-sm btn-outline-secondary">Ver Elegibilidade</a>
             </div>
         </div>
     </div>
