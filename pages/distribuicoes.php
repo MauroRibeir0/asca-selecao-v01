@@ -134,7 +134,11 @@ $cycleName = sanitize($activeCycle['name'] ?? 'N/A');
 <script>
 (function () {
     var baseUrl = (document.querySelector('meta[name="base-url"]') || {}).content || '';
-    var formatMoney = APP ? APP.formatMoney : function(v) { return parseFloat(v).toFixed(2) + ' MT'; };
+    // APP is loaded later (footer), so use typeof guard; callbacks run after DOMContentLoaded when APP is available
+    function formatMoney(v) {
+        if (typeof APP !== 'undefined' && APP.formatMoney) return APP.formatMoney(v);
+        return parseFloat(v).toFixed(2) + ' MT';
+    }
 
     var typeLabels = {
         'interest':  '<span class="badge bg-primary">Juros Fixos</span>',

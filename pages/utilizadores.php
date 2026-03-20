@@ -257,6 +257,7 @@ $members = $db->fetchAll("SELECT id, full_name FROM members WHERE status='active
 (function() {
     var baseUrl = (document.querySelector('meta[name="base-url"]') || {}).content || '';
     var dtInstance = null;
+    var usersMap = {};  // id → user object; avoids JSON.stringify in onclick attributes
 
     var roleBadge = {
         'admin':  '<span class="badge bg-danger">Admin</span>',
@@ -278,15 +279,16 @@ $members = $db->fetchAll("SELECT id, full_name FROM members WHERE status='active
                 // KPIs
                 var admins = 0, staff = 0, members = 0, inactive = 0;
                 rows.forEach(function(u) {
+                    usersMap[u.id] = u;  // store for onclick lookup
                     if (u.role === 'admin')  admins++;
                     if (u.role === 'user')   staff++;
                     if (u.role === 'member') members++;
                     if (!u.is_active || u.is_active == 0) inactive++;
                 });
-                document.getElementById('kpiTotal').textContent   = rows.length;
-                document.getElementById('kpiAdmins').textContent  = admins;
-                document.getElementById('kpiStaff').textContent   = staff;
-                document.getElementById('kpiMembers').textContent = members;
+                document.getElementById('kpiTotal').textContent    = rows.length;
+                document.getElementById('kpiAdmins').textContent   = admins;
+                document.getElementById('kpiStaff').textContent    = staff;
+                document.getElementById('kpiMembers').textContent  = members;
                 document.getElementById('kpiInactive').textContent = inactive;
 
                 var tbody = document.getElementById('usersTableBody');
@@ -305,6 +307,8 @@ $members = $db->fetchAll("SELECT id, full_name FROM members WHERE status='active
                     var toggleIcon  = u.is_active ? 'bi-toggle-on text-success' : 'bi-toggle-off text-secondary';
                     var toggleTitle = u.is_active ? 'Desactivar' : 'Activar';
 
+                    // Pass numeric ID only — user object is looked up from usersMap to avoid
+                    // JSON.stringify double-quotes breaking the HTML onclick attribute
                     return '<tr>' +
                         '<td class="fw-semibold">' + u.username + '</td>' +
                         '<td>' + u.full_name + '</td>' +
@@ -313,20 +317,24 @@ $members = $db->fetchAll("SELECT id, full_name FROM members WHERE status='active
                         '<td>' + (u.email || '—') + '</td>' +
                         '<td>' + lastLogin + '</td>' +
                         '<td class="text-end">' +
-                            '<button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal(' + JSON.stringify(u) + ')" title="Editar"><i class="bi bi-pencil"></i></button>' +
-                            '<button class="btn btn-sm btn-outline-warning me-1" onclick="openResetModal(' + u.id + ', ' + JSON.stringify(u.username) + ')" title="Redefinir Senha"><i class="bi bi-key"></i></button>' +
+                            '<button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal(' + u.id + ')" title="Editar"><i class="bi bi-pencil"></i></button>' +
+                            '<button class="btn btn-sm btn-outline-warning me-1" onclick="openResetModal(' + u.id + ')" title="Redefinir Senha"><i class="bi bi-key"></i></button>' +
                             '<button class="btn btn-sm btn-outline-secondary" onclick="toggleActive(' + u.id + ')" title="' + toggleTitle + '"><i class="bi ' + toggleIcon + '"></i></button>' +
                         '</td>' +
                     '</tr>';
                 }).join('');
 
                 // Init/Refresh DataTable
-                if (dtInstance) {
-                    dtInstance.destroy();
-                }
+                if (dtInstance) { dtInstance.destroy(); }
                 dtInstance = $('#usersTable').DataTable({
                     language: {
-                        url: '//cdn.datatables.net/plug-ins/1.13.8/i18n/pt-PT.json'
+                        search: 'Pesquisar:',
+                        lengthMenu: 'Mostrar _MENU_ registos',
+                        info: 'A mostrar _START_ a _END_ de _TOTAL_',
+                        infoEmpty: 'Sem registos',
+                        paginate: { previous: '←', next: '→' },
+                        zeroRecords: 'Nenhum resultado encontrado',
+                        emptyTable: 'Nenhum dado disponível'
                     },
                     pageLength: 15,
                     order: [[1, 'asc']],
@@ -348,7 +356,9 @@ $members = $db->fetchAll("SELECT id, full_name FROM members WHERE status='active
         if (memberEl) memberEl.required = show;
     };
 
-    window.openEditModal = function(user) {
+    window.openEditModal = function(id) {
+        var user = usersMap[id];
+        if (!user) return;
         document.getElementById('editId').value        = user.id;
         document.getElementById('editUsername').value  = user.username;
         document.getElementById('editFullName').value  = user.full_name;
@@ -360,11 +370,13 @@ $members = $db->fetchAll("SELECT id, full_name FROM members WHERE status='active
         new bootstrap.Modal(document.getElementById('modalEdit')).show();
     };
 
-    window.openResetModal = function(id, username) {
-        document.getElementById('resetUserId').value  = id;
-        document.getElementById('resetUserName').textContent = username;
-        document.getElementById('newPassword').value  = '';
-        document.getElementById('confirmPassword').value = '';
+    window.openResetModal = function(id) {
+        var user = usersMap[id];
+        if (!user) return;
+        document.getElementById('resetUserId').value        = user.id;
+        document.getElementById('resetUserName').textContent = user.username;
+        document.getElementById('newPassword').value        = '';
+        document.getElementById('confirmPassword').value    = '';
         new bootstrap.Modal(document.getElementById('modalResetPassword')).show();
     };
 
